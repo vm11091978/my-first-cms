@@ -11,7 +11,7 @@
                     <?php echo htmlspecialchars( $article->title )?>
                 </a>
                 
-                <?php if (isset($article->categoryId)) { ?>
+                <?php if (isset($results['categories'][$article->categoryId]->name)) { ?>
                     <span class="category">
                         in 
                         <a href=".?action=archive&amp;categoryId=<?php echo $article->categoryId?>">
@@ -25,6 +25,7 @@
                     </span>
                 <?php } ?>
             </h2>
+<!--        <p class="summary"><?php echo htmlspecialchars($article->summary)?></p> -->
             <p class="summary">
                 <?php
                     $str = htmlspecialchars($article->content);

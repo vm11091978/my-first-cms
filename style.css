@@ -220,6 +220,13 @@ textarea#content {
   font-family: "Courier New", courier, fixed;
 }
 
+#checkActivity {
+  display: block;
+  width: 25px;             
+  height: 25px;
+  cursor: pointer;
+}
+
 
 /* Рамка вокруг поля с фокусом ввода */
 

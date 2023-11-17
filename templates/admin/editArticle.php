@@ -46,6 +46,12 @@
                 <input type="date" name="publicationDate" id="publicationDate" placeholder="YYYY-MM-DD" required maxlength="10" value="<?php echo $results['article']->publicationDate ? date( "Y-m-d", $results['article']->publicationDate ) : "" ?>" />
               </li>
 
+              <li>
+                <label for="checkActivity">Active</label>
+                <input type="hidden" name="active" value="0">
+                <input id="checkActivity" type="checkbox" name="active" value="1"
+                  <?php echo !isset($results['article']->active) || $results['article']->active ? "checked" : "" ?> />
+              </li>
 
             </ul>
 
@@ -64,5 +70,3 @@
     <?php } ?>
 	  
 <?php include "templates/include/footer.php" ?>
-
-              

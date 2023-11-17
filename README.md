@@ -28,3 +28,6 @@
 ## История изменений
 
  [История изменений в репозитории](CHANGELOG.md).
+
+Для второго практического задания добавляем новый столбец в таблицу "articles":
+ALTER TABLE `articles` ADD `active` TINYINT(1) NOT NULL DEFAULT '1' AFTER `content`;
