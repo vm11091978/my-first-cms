@@ -38,15 +38,36 @@ switch ($action) {
     case 'deleteCategory':
         deleteCategory();
         break;
+    // Далее идёт функционал, доступный только админу
+    case 'listUsers':
+        if ($_SESSION['username'] == ADMIN_USERNAME) {
+            listUsers();
+            break;
+        }
+    case 'newUser':
+        if ($_SESSION['username'] == ADMIN_USERNAME) {
+            newUser();
+            break;
+        }
+    case 'editUser':
+        if ($_SESSION['username'] == ADMIN_USERNAME) {
+            editUser();
+            break;
+        }
+    case 'deleteUser':
+        if ($_SESSION['username'] == ADMIN_USERNAME) {
+            deleteUser();
+            break;
+        }
     default:
         listArticles();
 }
 
 /**
- * Авторизация пользователя (админа) -- установка значения в сессию
+ * Авторизация пользователя или админа -- установка значения в сессию
  */
-function login() {
-
+function login()
+{
     $results = array();
     $results['pageTitle'] = "Admin Login | Widget News";
 
@@ -55,41 +76,126 @@ function login() {
         // Пользователь получает форму входа: попытка авторизировать пользователя
 
         if ($_POST['username'] == ADMIN_USERNAME 
-                && $_POST['password'] == ADMIN_PASSWORD) {
+            && $_POST['password'] == ADMIN_PASSWORD) {
 
-          // Вход прошел успешно: создаем сессию и перенаправляем на страницу администратора
-          $_SESSION['username'] = ADMIN_USERNAME;
-          header( "Location: admin.php");
+            // Вход прошел успешно: создаем сессию и перенаправляем на страницу администратора
+            $_SESSION['username'] = ADMIN_USERNAME;
+            header("Location: admin.php");
 
+        // Может быть авторизироваться пытается не админ, а зарегестрированный пользователь
         } else {
+            $user = User::getByLogin($_POST['username']);
 
-          // Ошибка входа: выводим сообщение об ошибке для пользователя
-          $results['errorMessage'] = "Неправильный пароль, попробуйте ещё раз.";
-          require( TEMPLATE_PATH . "/admin/loginForm.php" );
+            // Если такой пользователь существует и пароль для него совпал
+            if ($user && $_POST['password'] == $user->password) {
+                // Проверим пользователя на активность
+                if ($user->active == 1) {
+
+                    // Вход прошел успешно: создаём сессию и перенаправляем на страницу администратора
+                    $_SESSION['username'] = $_POST['username'];
+                    header("Location: admin.php");
+
+                } else {
+
+                    // Вход запрещён админом: выводим сообщение об ошибке для пользователя
+                    $results['errorMessage'] = "Ваш аккаунт забокирован, обратитесь к администратору.";
+                    require(TEMPLATE_PATH . "/admin/loginForm.php");
+                }
+            } else {
+
+                // Ошибка входа: выводим сообщение об ошибке для пользователя
+                $results['errorMessage'] = "Неправильный логин или пароль, попробуйте ещё раз.";
+                require(TEMPLATE_PATH . "/admin/loginForm.php");
+            }
         }
-
     } else {
 
       // Пользователь еще не получил форму: выводим форму
       require(TEMPLATE_PATH . "/admin/loginForm.php");
     }
-
 }
-
 
 function logout() {
-    unset( $_SESSION['username'] );
-    header( "Location: admin.php" );
+    unset($_SESSION['username']);
+    header("Location: admin.php");
+}
+
+/**
+ * Проверяет, действительно ли существует в БД текущий пользователь и активен ли его аккаунт
+ * Если да, то функция возвращает true и код метода, в котором данная функция была вызвана, продолжает выполняться дальше
+ * Если нет, то пользователя перекидывает на страницу входа в админку
+ *
+ * @return true | login()
+ */
+function isAllow()
+{
+    if ($_SESSION['username'] == ADMIN_USERNAME) {
+        return true;
+    }
+    $currentUser = User::getByLogin($_SESSION['username']);
+    if (isset($currentUser) && $currentUser->active == 1) {
+        return true;
+    }
+
+    login();
 }
 
 
-function newArticle() {
-	  
+/*
+ * Методы для работы со статьями
+ */
+
+function listArticles()
+{
+    if (empty(isAllow())) {
+        return;
+    }
+
+    $results = array();
+
+    $data = Article::getList();
+    $results['articles'] = $data['results'];
+    $results['totalRows'] = $data['totalRows'];
+
+    $data = Category::getList();
+    $results['categories'] = array();
+
+    foreach ($data['results'] as $category) { 
+        $results['categories'][$category->id] = $category;
+    }
+
+    $results['pageTitle'] = "All articles";
+
+    // вывод сообщения об ошибке (если есть)
+    if (isset($_GET['error'])) {
+        if ($_GET['error'] == "articleNotFound") 
+            $results['errorMessage'] = "Error: Article not found.";
+    }
+
+    // вывод сообщения (если есть)
+    if (isset($_GET['status'])) {
+        if ($_GET['status'] == "changesSaved") {
+            $results['statusMessage'] = "Your changes have been saved.";
+        }
+        if ($_GET['status'] == "articleDeleted")  {
+            $results['statusMessage'] = "Article deleted.";
+        }
+    }
+
+    require(TEMPLATE_PATH . "/admin/listArticles.php");
+}
+
+function newArticle()
+{
+    if (empty(isAllow())) {
+        return;
+    }
+
     $results = array();
     $results['pageTitle'] = "New Article";
     $results['formAction'] = "newArticle";
 
-    if ( isset( $_POST['saveChanges'] ) ) {
+    if (isset($_POST['saveChanges'])) {
 //            echo "<pre>";
 //            print_r($results);
 //            print_r($_POST);
@@ -103,30 +209,39 @@ function newArticle() {
 //            echo "<pre>";
 //            А здесь данные массива $article уже неполные(есть только Число от даты, категория и полный текст статьи)          
         $article->insert();
-        header( "Location: admin.php?status=changesSaved" );
+        header("Location: admin.php?status=changesSaved");
 
-    } elseif ( isset( $_POST['cancel'] ) ) {
+    } elseif (isset($_POST['cancel'])) {
 
         // Пользователь сбросил результаты редактирования: возвращаемся к списку статей
-        header( "Location: admin.php" );
+        header("Location: admin.php");
     } else {
 
         // Пользователь еще не получил форму редактирования: выводим форму
         $results['article'] = new Article;
         $data = Category::getList();
         $results['categories'] = $data['results'];
-        require( TEMPLATE_PATH . "/admin/editArticle.php" );
+        require(TEMPLATE_PATH . "/admin/editArticle.php");
     }
 }
-
 
 /**
  * Редактирование статьи
  * 
  * @return null
  */
-function editArticle() {
-	  
+function editArticle()
+{
+    if (empty(isAllow())) {
+        return;
+    }
+
+    // Если URL-ссылка ведёт на страницу с несуществующим Id статьи
+    if (isset($_GET['articleId']) && ! Article::getById((int)$_GET['articleId'])) {
+        header("Location: admin.php?error=articleNotFound");
+        return;
+    }
+
     $results = array();
     $results['pageTitle'] = "Edit Article";
     $results['formAction'] = "editArticle";
@@ -134,19 +249,19 @@ function editArticle() {
     if (isset($_POST['saveChanges'])) {
 
         // Пользователь получил форму редактирования статьи: сохраняем изменения
-        if ( !$article = Article::getById( (int)$_POST['articleId'] ) ) {
-            header( "Location: admin.php?error=articleNotFound" );
+        if (! $article = Article::getById((int)$_POST['articleId'])) {
+            header("Location: admin.php?error=articleNotFound");
             return;
         }
 
-        $article->storeFormValues( $_POST );
+        $article->storeFormValues($_POST);
         $article->update();
-        header( "Location: admin.php?status=changesSaved" );
+        header("Location: admin.php?status=changesSaved");
 
-    } elseif ( isset( $_POST['cancel'] ) ) {
+    } elseif (isset($_POST['cancel'])) {
 
         // Пользователь отказался от результатов редактирования: возвращаемся к списку статей
-        header( "Location: admin.php" );
+        header("Location: admin.php");
     } else {
 
         // Пользвоатель еще не получил форму редактирования: выводим форму
@@ -155,152 +270,273 @@ function editArticle() {
         $results['categories'] = $data['results'];
         require(TEMPLATE_PATH . "/admin/editArticle.php");
     }
-
 }
 
+function deleteArticle()
+{
+    if (empty(isAllow())) {
+        return;
+    }
 
-function deleteArticle() {
-
-    if ( !$article = Article::getById( (int)$_GET['articleId'] ) ) {
-        header( "Location: admin.php?error=articleNotFound" );
+    if (! $article = Article::getById((int)$_GET['articleId'])) {
+        header("Location: admin.php?error=articleNotFound");
         return;
     }
 
     $article->delete();
-    header( "Location: admin.php?status=articleDeleted" );
+    header("Location: admin.php?status=articleDeleted");
 }
 
 
-function listArticles() {
-    $results = array();
-    
-    $data = Article::getList();
-    $results['articles'] = $data['results'];
-    $results['totalRows'] = $data['totalRows'];
-    
-    $data = Category::getList();
-    $results['categories'] = array();
-    foreach ($data['results'] as $category) { 
-        $results['categories'][$category->id] = $category;
-    }
-    
-    $results['pageTitle'] = "Все статьи";
+/*
+ * Методы для работы с категориями
+ */
 
-    if (isset($_GET['error'])) { // вывод сообщения об ошибке (если есть)
-        if ($_GET['error'] == "articleNotFound") 
-            $results['errorMessage'] = "Error: Article not found.";
+function listCategories()
+{
+    if (empty(isAllow())) {
+        return;
     }
 
-    if (isset($_GET['status'])) { // вывод сообщения (если есть)
-        if ($_GET['status'] == "changesSaved") {
-            $results['statusMessage'] = "Your changes have been saved.";
-        }
-        if ($_GET['status'] == "articleDeleted")  {
-            $results['statusMessage'] = "Article deleted.";
-        }
-    }
-
-    require(TEMPLATE_PATH . "/admin/listArticles.php" );
-}
-
-function listCategories() {
     $results = array();
     $data = Category::getList();
     $results['categories'] = $data['results'];
     $results['totalRows'] = $data['totalRows'];
     $results['pageTitle'] = "Article Categories";
 
-    if ( isset( $_GET['error'] ) ) {
-        if ( $_GET['error'] == "categoryNotFound" ) $results['errorMessage'] = "Error: Category not found.";
-        if ( $_GET['error'] == "categoryContainsArticles" ) $results['errorMessage'] = "Error: Category contains articles. Delete the articles, or assign them to another category, before deleting this category.";
+    if (isset($_GET['error'])) {
+        if ($_GET['error'] == "categoryNotFound") {
+            $results['errorMessage'] = "Error: Category not found.";
+        }
+        if ($_GET['error'] == "categoryContainsArticles") {
+            $results['errorMessage'] = "Error: Category contains articles. Delete the articles, or assign them to another category, before deleting this category.";
+        }
     }
 
-    if ( isset( $_GET['status'] ) ) {
-        if ( $_GET['status'] == "changesSaved" ) $results['statusMessage'] = "Your changes have been saved.";
-        if ( $_GET['status'] == "categoryDeleted" ) $results['statusMessage'] = "Category deleted.";
+    if (isset($_GET['status'])) {
+        if ($_GET['status'] == "changesSaved") {
+            $results['statusMessage'] = "Your changes have been saved.";
+        }
+        if ($_GET['status'] == "categoryDeleted") {
+            $results['statusMessage'] = "Category deleted.";
+        }
     }
 
-    require( TEMPLATE_PATH . "/admin/listCategories.php" );
+    require(TEMPLATE_PATH . "/admin/listCategories.php");
 }
-	  
-	  
-function newCategory() {
+
+function newCategory()
+{
+    if (empty(isAllow())) {
+        return;
+    }
 
     $results = array();
     $results['pageTitle'] = "New Article Category";
     $results['formAction'] = "newCategory";
 
-    if ( isset( $_POST['saveChanges'] ) ) {
+    if (isset($_POST['saveChanges'])) {
 
         // User has posted the category edit form: save the new category
         $category = new Category;
-        $category->storeFormValues( $_POST );
+        $category->storeFormValues($_POST);
         $category->insert();
-        header( "Location: admin.php?action=listCategories&status=changesSaved" );
+        header("Location: admin.php?action=listCategories&status=changesSaved");
 
-    } elseif ( isset( $_POST['cancel'] ) ) {
+    } elseif (isset($_POST['cancel'])) {
 
         // User has cancelled their edits: return to the category list
-        header( "Location: admin.php?action=listCategories" );
+        header("Location: admin.php?action=listCategories");
     } else {
 
         // User has not posted the category edit form yet: display the form
         $results['category'] = new Category;
-        require( TEMPLATE_PATH . "/admin/editCategory.php" );
+        require(TEMPLATE_PATH . "/admin/editCategory.php");
     }
-
 }
 
+function editCategory()
+{
+    if (empty(isAllow())) {
+        return;
+    }
 
-function editCategory() {
+    // Если URL-ссылка ведёт на страницу с несуществующим Id категории
+    if (isset($_GET['categoryId']) && ! Category::getById((int)$_GET['categoryId'])) {
+        header("Location: admin.php?action=listCategories&error=categoryNotFound");
+        return;
+    }
 
     $results = array();
     $results['pageTitle'] = "Edit Article Category";
     $results['formAction'] = "editCategory";
 
-    if ( isset( $_POST['saveChanges'] ) ) {
+    if (isset($_POST['saveChanges'])) {
 
         // User has posted the category edit form: save the category changes
 
-        if ( !$category = Category::getById( (int)$_POST['categoryId'] ) ) {
-          header( "Location: admin.php?action=listCategories&error=categoryNotFound" );
-          return;
+        if (! $category = Category::getById((int)$_POST['categoryId'])) {
+            header("Location: admin.php?action=listCategories&error=categoryNotFound");
+            return;
         }
 
-        $category->storeFormValues( $_POST );
+        $category->storeFormValues($_POST);
         $category->update();
-        header( "Location: admin.php?action=listCategories&status=changesSaved" );
+        header("Location: admin.php?action=listCategories&status=changesSaved");
 
-    } elseif ( isset( $_POST['cancel'] ) ) {
+    } elseif (isset($_POST['cancel'])) {
 
         // User has cancelled their edits: return to the category list
-        header( "Location: admin.php?action=listCategories" );
+        header("Location: admin.php?action=listCategories");
     } else {
 
         // User has not posted the category edit form yet: display the form
-        $results['category'] = Category::getById( (int)$_GET['categoryId'] );
-        require( TEMPLATE_PATH . "/admin/editCategory.php" );
+        $results['category'] = Category::getById((int)$_GET['categoryId']);
+        require(TEMPLATE_PATH . "/admin/editCategory.php");
     }
-
 }
 
-
-function deleteCategory() {
-
-    if ( !$category = Category::getById( (int)$_GET['categoryId'] ) ) {
-        header( "Location: admin.php?action=listCategories&error=categoryNotFound" );
+function deleteCategory()
+{
+    if (empty(isAllow())) {
         return;
     }
 
-    $articles = Article::getList( 1000000, $category->id );
+    if (! $category = Category::getById((int)$_GET['categoryId'])) {
+        header("Location: admin.php?action=listCategories&error=categoryNotFound");
+        return;
+    }
 
-    if ( $articles['totalRows'] > 0 ) {
-        header( "Location: admin.php?action=listCategories&error=categoryContainsArticles" );
+    $articles = Article::getList(1000000, $category->id);
+
+    if ($articles['totalRows'] > 0) {
+        header("Location: admin.php?action=listCategories&error=categoryContainsArticles");
         return;
     }
 
     $category->delete();
-    header( "Location: admin.php?action=listCategories&status=categoryDeleted" );
+    header("Location: admin.php?action=listCategories&status=categoryDeleted");
 }
 
-        
+
+/*
+ * Методы для работы с пользователями
+ */
+
+function listUsers()
+{
+    $results = array();
+    $data = User::getList();
+    $results['users'] = $data['results'];
+    $results['totalRows'] = $data['totalRows'];
+    $results['pageTitle'] = "All users";
+    
+    if (isset($_GET['error'])) {
+        if ($_GET['error'] == "userNotFound") {
+            $results['errorMessage'] = "Error: User not found.";
+        }
+        if ($_GET['error'] == "userExists") {
+            $results['errorMessage'] = "Error: User with this login already exists.";
+        }
+    }
+
+    if (isset($_GET['status'])) {
+        if ($_GET['status'] == "changesSaved") {
+            $results['statusMessage'] = "Your changes have been saved.";
+        }
+        if ($_GET['status'] == "userDeleted") {
+            $results['statusMessage'] = "User deleted.";
+        }
+    }
+
+    require(TEMPLATE_PATH . "/admin/listUsers.php");
+}
+
+function newUser()
+{
+    $results = array();
+    $results['pageTitle'] = "New User";
+    $results['formAction'] = "newUser";
+
+    if (isset($_POST['saveChanges'])) {
+
+        // User has posted the user edit form: save the new user
+
+        $user = new User;
+        $user->storeFormValues($_POST);
+
+        // Проверим введённый в форму админом логин на уникальность
+        $isUser = User::getByLogin($user->login);
+        if ($isUser || $user->login == ADMIN_USERNAME) {
+            header("Location: admin.php?action=listUsers&error=userExists");
+        } else {
+            $user->insert();
+            header("Location: admin.php?action=listUsers&status=changesSaved");
+        }
+    } elseif (isset($_POST['cancel'])) {
+
+        // User has cancelled their edits: return to the user list
+        header("Location: admin.php?action=listUsers");
+    } else {
+
+        // User has not posted the user edit form yet: display the form
+        $results['user'] = new User;
+        require(TEMPLATE_PATH . "/admin/editUser.php");
+    }
+}
+
+function editUser()
+{
+    // Если URL-ссылка ведёт на страницу с несуществующим логином пользователя
+    if (isset($_GET['userLogin']) && ! User::getByLogin($_GET['userLogin'])) {
+        header("Location: admin.php?action=listUsers&error=userNotFound");
+        return;
+    }
+
+    $results = array();
+    $results['pageTitle'] = "Edit User";
+    $results['formAction'] = "editUser";
+
+    if (isset($_POST['saveChanges'])) {
+
+        // User has posted the user edit form: save the user changes
+
+        // Если админ, отправляя форму, пытается обновить данные несуществующего пользователя
+        if (! $user = User::getByLogin($_POST['userLogin'])) {
+            header("Location: admin.php?action=listUsers&error=userNotFound");
+            return;
+        }
+
+        // Если админ изменил логин на новый, но новое значение уже занято
+        $isUser = User::getByLogin($_POST['login']);
+        if (($_POST['userLogin'] != $_POST['login'] && $isUser) || $_POST['login'] == ADMIN_USERNAME) {
+            header("Location: admin.php?action=listUsers&error=userExists");
+        } else {
+
+            $user->storeFormValues($_POST);
+            $user->update($_POST['userLogin']);
+            header("Location: admin.php?action=listUsers&status=changesSaved");
+        }
+    } elseif(isset($_POST['cancel'])) {
+
+        // User has cancelled their edits: return to the user list
+        header("Location: admin.php?action=listUsers");
+    } else {
+
+        // User has not posted the user edit form yet: display the form
+        $results['user'] = User::getByLogin($_GET['userLogin']);
+        require(TEMPLATE_PATH . "/admin/editUser.php");
+    }
+}
+
+function deleteUser()
+{
+    // Если админ пытается удалить пользователя с несуществующим логином 
+    if (! $user = User::getByLogin($_GET['userLogin'])) {
+        header("Location: admin.php?action=listUsers&error=userNotFound");
+        return;
+    }
+
+    $user->delete();
+    header("Location: admin.php?action=listUsers&status=userDeleted");
+}

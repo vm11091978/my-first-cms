@@ -31,3 +31,7 @@
 
 Для второго практического задания добавляем новый столбец в таблицу "articles":
 ALTER TABLE `articles` ADD `active` TINYINT(1) NOT NULL DEFAULT '1' AFTER `content`;
+
+Для третьего практического задания создаём новую таблицу "users":
+CREATE TABLE users (login VARCHAR(32) NOT NULL UNIQUE, password VARCHAR(32) NOT NULL, active TINYINT(1) NOT NULL DEFAULT '0', PRIMARY KEY (login)) ENGINE = INNODB;
+Здесь столбец "active" - активность пользователя ("1" - разрешен вход по логину и паролю, "0" - пользователь заблокирован). Редактируется админом.

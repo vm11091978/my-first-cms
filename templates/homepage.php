@@ -8,14 +8,14 @@
                 </span>
                 
                 <a href=".?action=viewArticle&amp;articleId=<?php echo $article->id?>">
-                    <?php echo htmlspecialchars( $article->title )?>
+                    <?php echo htmlspecialchars($article->title)?>
                 </a>
                 
                 <?php if (isset($results['categories'][$article->categoryId]->name)) { ?>
                     <span class="category">
                         in 
                         <a href=".?action=archive&amp;categoryId=<?php echo $article->categoryId?>">
-                            <?php echo htmlspecialchars($results['categories'][$article->categoryId]->name )?>
+                            <?php echo htmlspecialchars($results['categories'][$article->categoryId]->name)?>
                         </a>
                     </span>
                 <?php } 
