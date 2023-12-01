@@ -32,11 +32,21 @@
                   </li>
 
                   <li>
-                    <label for="categoryId">Article Category</label>
+                    <label for="categoryId">Article Subcat-ry</label>
                     <select name="categoryId">
-                      <option value="0"<?php echo !$results['article']->categoryId ? " selected" : ""?>>(none)</option>
-                    <?php foreach ( $results['categories'] as $category ) { ?>
-                      <option value="<?php echo $category->id?>"<?php echo ( $category->id == $results['article']->categoryId ) ? " selected" : ""?>><?php echo htmlspecialchars( $category->name )?></option>
+                      <option value="0"<?php echo ($results['article']->categoryId == 0 && !$results['article']->subcategoryId) ? " selected" : "" ?>>(none)</option>
+                    <?php foreach ($results['categories'] as $category) { ?>
+                      <optgroup label="<?php echo $category->name ?>">
+                          <option value="<?php echo $category->id?>"<?php echo ($category->id == $results['article']->categoryId) ? " selected" : "" ?>>
+                            без подкатегории
+                          </option>
+                        <?php foreach ($results['subcategories'] as $subcategory) { 
+                          if ($subcategory->categoryId == $category->id) { ?>
+                          <option value="sub_<?php echo $subcategory->id ?>"<?php echo ($subcategory->id == $results['article']->subcategoryId) ? " selected" : "" ?>>
+                            <?php echo htmlspecialchars($subcategory->subname) ?>
+                          </option>
+                        <?php } } ?>
+                      </optgroup>
                     <?php } ?>
                     </select>
                   </li>

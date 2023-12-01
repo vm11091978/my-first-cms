@@ -6,11 +6,10 @@ require("config.php");
 
 try {
     initApplication();
-} catch (Exception $e) { 
+} catch (Exception $e) {
     $results['errorMessage'] = $e->getMessage();
     require(TEMPLATE_PATH . "/viewErrorPage.php");
 }
-
 
 function initApplication()
 {
@@ -18,40 +17,62 @@ function initApplication()
 
     switch ($action) {
         case 'archive':
-          archive();
-          break;
+            archive();
+            break;
         case 'viewArticle':
-          viewArticle();
-          break;
+            viewArticle();
+            break;
         default:
-          homepage();
+            homepage();
     }
 }
 
 function archive() 
 {
     $results = [];
-    
-    $categoryId = ( isset( $_GET['categoryId'] ) && $_GET['categoryId'] ) ? (int)$_GET['categoryId'] : null;
-    
-    $results['category'] = Category::getById( $categoryId );
-    
-    $data = Article::getList(100000, $results['category'] ? $results['category']->id : null, null, 1);
-    
+
+    $categoryId = (isset($_GET['categoryId']) && $_GET['categoryId']) ? (int)$_GET['categoryId'] : null;
+    $subcategoryId = (isset($_GET['subcategoryId']) && $_GET['subcategoryId']) ? (int)$_GET['subcategoryId'] : null;
+
+    $results['category'] = Category::getById($categoryId);
+    $results['subcategory'] = Subcategory::getById($subcategoryId);
+
+    $data = Article::getList(
+        100000,
+        $results['category'] ? $results['category']->id : null,
+        $results['subcategory'] ? $results['subcategory']->id : null,
+        null,
+        1
+    );
+
     $results['articles'] = $data['results'];
     $results['totalRows'] = $data['totalRows'];
-    
+
     $data = Category::getList();
     $results['categories'] = array();
-    
-    foreach ( $data['results'] as $category ) {
+
+    foreach ($data['results'] as $category) {
         $results['categories'][$category->id] = $category;
     }
-    
-    $results['pageHeading'] = $results['category'] ?  $results['category']->name : "Article Archive";
+
+    $data = Subcategory::getList();
+    $results['subcategories'] = array();
+
+    foreach ($data['results'] as $subcategory) {
+        $results['subcategories'][$subcategory->id] = $subcategory;
+    }
+
+    if ($results['category']) {
+        $results['pageHeading'] = $results['category']->name;
+    } elseif ($results['subcategory']) {
+        $results['pageHeading'] = $results['subcategory']->subname;
+    } else {
+        $results['pageHeading'] = "Article Archive";
+    }
+
     $results['pageTitle'] = $results['pageHeading'] . " | Widget News";
-    
-    require( TEMPLATE_PATH . "/archive.php" );
+
+    require(TEMPLATE_PATH . "/archive.php");
 }
 
 /**
@@ -60,23 +81,24 @@ function archive()
  * @return null
  */
 function viewArticle() 
-{   
-    if ( !isset($_GET["articleId"]) || !$_GET["articleId"] ) {
-      homepage();
-      return;
+{
+    if (! isset($_GET["articleId"]) || !$_GET["articleId"]) {
+        homepage();
+        return;
     }
 
     $results = array();
     $articleId = (int)$_GET["articleId"];
     $results['article'] = Article::getById($articleId);
-    
+
     if (!$results['article']) {
         throw new Exception("Статья с id = $articleId не найдена");
     }
-    
+
     $results['category'] = Category::getById($results['article']->categoryId);
+    $results['subcategory'] = Subcategory::getById($results['article']->subcategoryId);
     $results['pageTitle'] = $results['article']->title . " | Простая CMS";
-    
+
     require(TEMPLATE_PATH . "/viewArticle.php");
 }
 
@@ -86,16 +108,24 @@ function viewArticle()
 function homepage() 
 {
     $results = array();
-    $data = Article::getList(HOMEPAGE_NUM_ARTICLES, null, null, 1);
+    $data = Article::getList(HOMEPAGE_NUM_ARTICLES, null, null, null, 1);
     $results['articles'] = $data['results'];
     $results['totalRows'] = $data['totalRows'];
     
     $data = Category::getList();
     $results['categories'] = array();
-    foreach ( $data['results'] as $category ) { 
+
+    foreach ($data['results'] as $category) { 
         $results['categories'][$category->id] = $category;
     } 
-    
+
+    $data = Subcategory::getList();
+    $results['subcategories'] = array();
+
+    foreach ($data['results'] as $subcategory) {
+        $results['subcategories'][$subcategory->id] = $subcategory;
+    }
+
     $results['pageTitle'] = "Простая CMS на PHP";
     
 //    echo "<pre>";
@@ -104,5 +134,4 @@ function homepage()
 //    die();
     
     require(TEMPLATE_PATH . "/homepage.php");
-    
 }

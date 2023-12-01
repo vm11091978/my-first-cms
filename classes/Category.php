@@ -75,6 +75,19 @@ class Category
             return new Category($row);
     }
 
+    public static function getAllById( $id ) 
+    {
+        $conn = new PDO( DB_DSN, DB_USERNAME, DB_PASSWORD );
+        $sql = "SELECT * FROM categories WHERE id = :id";
+        $st = $conn->prepare( $sql );
+        $st->bindValue(":id", $id, PDO::PARAM_INT);
+        $st->execute();
+        $row = $st->fetch();
+        $conn = null;
+        if ($row) 
+            return new Category($row);
+    }
+
 
     /**
     * Возвращаем все (или диапазон) объектов Category из базы данных

@@ -7,6 +7,7 @@
               <th>Publication Date</th>
               <th>Article</th>
               <th>Category</th>
+              <th>Subcategory</th>
               <th>Activity</th>
             </tr>
 
@@ -27,13 +28,23 @@
               <!-- <?php echo $results['categories'][$article->categoryId]->name?> Эта строка была скопирована с сайта -->
               <!-- <?php echo "<pre>"; print_r ($article); echo "</pre>"; ?> Здесь объект $article содержит в себе только ID категории. А надо по ID достать название категории -->
 
-                <?php 
-                if (isset($results['categories'][$article->categoryId]->name)) {
+                <?php
+                if (isset($results['subcategories'][$article->subcategoryId]->name)) {
+                    echo $results['subcategories'][$article->subcategoryId]->name;                        
+                } elseif (isset($results['categories'][$article->categoryId]->name)) {
                     echo $results['categories'][$article->categoryId]->name;                        
                 } else {
                     echo "Без категории";
-                }?>
+                } ?>
 
+              </td>
+              <td>
+                <?php
+                if (isset($results['subcategories'][$article->subcategoryId]->subname)) {
+                    echo $results['subcategories'][$article->subcategoryId]->subname;                        
+                } else {
+                    echo "-";
+                } ?>
               </td>
               <td>
                 <?php echo $article->active ? 'Yes' : 'No'?>
