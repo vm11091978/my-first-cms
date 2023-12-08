@@ -35,9 +35,11 @@
 ALTER TABLE `articles` ADD `active` TINYINT(1) NOT NULL DEFAULT '1' AFTER `content`;
 ```
 
+
 Для третьего практического задания создаём новую таблицу "users":
 ```php
-CREATE TABLE `users` (login VARCHAR(32) NOT NULL UNIQUE,
+CREATE TABLE `users` (
+  `login` VARCHAR(32) NOT NULL UNIQUE,
   `password` VARCHAR(32) NOT NULL,
   `active` TINYINT(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`login`))
@@ -75,4 +77,22 @@ INSERT INTO `subcategories` (`categoryId`, `subname`) VALUES
 Вставляем столбец с подкатегориями в таблицу со статьями:
 ```php
 ALTER TABLE `articles` ADD `subcategoryId` SMALLINT(5) DEFAULT NULL AFTER `categoryId`;
+```
+
+
+Для пятого практического задания создаём новую таблицу "user_articles":
+```php
+CREATE TABLE `user_articles` (
+  `id` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `userLogin` VARCHAR(32) NOT NULL,
+  `articleId` SMALLINT(5) UNSIGNED NOT NULL, 
+  PRIMARY KEY (`id`),
+    UNIQUE KEY `relation_row_unique` (`userLogin`, `articleId`),
+  INDEX `userLogin` (`userLogin`),
+  INDEX `articleId` (`articleId`),
+  CONSTRAINT `user_articles_ibfk_1` FOREIGN KEY (`userLogin`) 
+    REFERENCES `Users` (`login`) ON DELETE CASCADE,
+  CONSTRAINT `user_articles_ibfk_2` FOREIGN KEY (`articleId`) 
+    REFERENCES `Articles` (`id`) ON DELETE CASCADE
+) ENGINE = INNODB;
 ```

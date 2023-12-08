@@ -6,7 +6,7 @@
 class Article
 {
     /**
-     * @var int ID статей из базы данны
+     * @var int ID статьи из базы данных
      */
     public $id = null;
 
@@ -34,6 +34,11 @@ class Article
      * @var int ID подкатегории статьи
      */
     public $subcategoryId = null;
+
+    /**
+    * @var array Логин(ы) автора(ов) статьи
+    */
+    public $authors = array();
 
     /**
      * @var string Краткое описание статьи
@@ -83,6 +88,10 @@ class Article
             $this->subcategoryId = (int) $data['subcategoryId'];
         }
 
+        if (isset($data['authors'])) {
+            $this->authors = $data['authors'];
+        }
+
         if (isset($data['summary'])) {
             $this->summary = $data['summary'];
         }
@@ -129,7 +138,16 @@ class Article
         $conn = new PDO(DB_DSN, DB_USERNAME, DB_PASSWORD);
         $sql = "SELECT *, UNIX_TIMESTAMP(publicationDate)
             AS publicationDate FROM articles WHERE id = :id";
-
+/*
+        // Можно сделать сложный SQL-запрос, но он вернёт строку вместо массива авторов
+        $sql = "SELECT articles.*,
+                    GROUP_CONCAT(user_articles.userLogin SEPARATOR ', ') AS authors,
+                    UNIX_TIMESTAMP(publicationDate) AS publicationDate
+                FROM articles LEFT JOIN user_articles
+                    ON articles.id = user_articles.articleId
+                WHERE articles.id = :id
+                    GROUP BY articles.id";
+        
         $st = $conn->prepare($sql);
         $st->bindValue(":id", $id, PDO::PARAM_INT);
         $st->execute();
@@ -140,6 +158,31 @@ class Article
         if ($row) { 
             return new Article($row);
         }
+*/
+        $st = $conn->prepare($sql);
+        $st->bindValue(":id", $id, PDO::PARAM_INT);
+        $st->execute();
+
+        $row = $st->fetch();
+
+        if ($row) {
+            // Делаем запрос к БД для отображения авторов статьи
+            $sql = "SELECT * FROM user_articles WHERE articleId = :articleId";
+            $st = $conn->prepare($sql);
+            $st->bindValue(":articleId", $id, PDO::PARAM_INT);
+            $st->execute();
+
+            $authors = array();
+            while ($row2 = $st->fetch()) {
+                $authors[] = $row2['userLogin'];
+            }
+
+            $article = new Article($row);
+            $article->authors = $authors;
+            return $article;
+        }
+
+        $conn = null;
     }
 
     /**
@@ -155,6 +198,25 @@ class Article
             $categoryId = null, $subcategoryId = null, $order = null, $getActive = null)
     {
         $conn = new PDO(DB_DSN, DB_USERNAME, DB_PASSWORD);
+
+        // Делаем запрос к БД для отображения авторов статьи
+        $sql = "SELECT * FROM user_articles";
+        $st = $conn->prepare($sql);
+        $st->execute();
+
+        // Сформируем массив вида ( [5]=>Array([0]=>Masha [1]=>Vova) [10]=>Array([0]=>Masha) )
+        // каждым ключём которого будет ID статьи, а значением - массив авторов этой статьи
+        $authors = array();
+        while ($row = $st->fetch()) {
+            // если такой ID статьи уже существует в массиве, просто добавим к статье ещё одного автора
+            if (array_key_exists($row['articleId'], $authors)) {
+                $authors[$row['articleId']][] = $row['userLogin'];
+            } else {
+                $authors[$row['articleId']] = array($row['userLogin']);
+            }
+        }
+        // return (array("results" => $authors, "totalRows" => 1));
+        
         $tableName = "articles";
         $fromPart = "FROM " . $tableName;
 
@@ -187,7 +249,21 @@ class Article
             ON $tableName.subcategoryId = subcategories.id
             $categoryClause $activeClause
             ORDER BY $orderClause LIMIT :numRows";
-
+/*
+        // Можно сделать сложный SQL-запрос, но он вернёт строку вместо массива авторов
+        $sql = "SELECT $tableName.*,
+                GROUP_CONCAT(user_articles.userLogin SEPARATOR ', ') AS authors,
+                UNIX_TIMESTAMP(publicationDate) AS publicationDate,
+                subcategories.categoryId AS categoryId2
+            $fromPart
+            LEFT JOIN subcategories
+                ON $tableName.subcategoryId = subcategories.id
+            LEFT JOIN user_articles
+                ON articles.id = user_articles.articleId
+            $categoryClause $activeClause
+            GROUP BY articles.id
+            ORDER BY $orderClause LIMIT :numRows";
+*/
         $st = $conn->prepare($sql);
         $st->bindValue(":numRows", $numRows, PDO::PARAM_INT);
         /**
@@ -205,15 +281,21 @@ class Article
 
         // выполняем запрос к базе данных
         $st->execute();
-        $list = array();
+        $conn = null;
 
+        $list = array();
         $i = 0;
         while ($row = $st->fetch()) {
             $article = new Article($row);
+            // Если в сформированном ранее массиве существует элемент с ключём равным ID статьи,
+            // "прицепим" к объекту статьи ещё одно свойство - массив авторов этой статьи
+            if (isset($authors[$article->id])) {
+                $article->authors = $authors[$article->id];
+            }
             $list[] = $article;
             $i++;
         }
-        
+
         return (array(
             "results" => $list,
             "totalRows" => $i
@@ -259,8 +341,21 @@ class Article
         $st->bindValue(":summary", $this->summary, PDO::PARAM_STR);
         $st->bindValue(":content", $this->content, PDO::PARAM_STR);
         $st->bindValue(":active", $this->active, PDO::PARAM_INT);
+
         $st->execute();
         $this->id = $conn->lastInsertId();
+        $lastInsertId = $this->id;
+
+        // Если выбран(ы) автор(ы), вставляем данные в таблицу связей
+        foreach ($this->authors as $user){
+            $sql = "INSERT INTO user_articles (userLogin, articleId)
+                VALUES (:userLogin, :articleId)";
+            $st = $conn->prepare($sql);
+            $st->bindValue(":userLogin", $user, PDO::PARAM_STR);
+            $st->bindValue(":articleId", $lastInsertId, PDO::PARAM_INT); 
+            $st->execute();
+        }
+
         $conn = null;
     }
 
@@ -278,6 +373,9 @@ class Article
 
         // Обновляем статью
         $conn = new PDO(DB_DSN, DB_USERNAME, DB_PASSWORD);
+        // объявлем начало транзации
+        $conn->beginTransaction();
+
         $sql = "UPDATE articles SET publicationDate = FROM_UNIXTIME(:publicationDate),
             categoryId = :categoryId, subcategoryId = :subcategoryId, title = :title,
             summary = :summary, content = :content, active = :active WHERE id = :id";
@@ -304,7 +402,28 @@ class Article
         $st->bindValue(":content", $this->content, PDO::PARAM_STR);
         $st->bindValue(":active", $this->active, PDO::PARAM_INT);
         $st->bindValue(":id", $this->id, PDO::PARAM_INT);
+
         $st->execute();
+
+        // код ниже отработает даже в том случае, если пользователь не изменил автора(ов) в селекте
+        // сначала удаляем старые строки из таблицы связей
+        $sql = "DELETE FROM user_articles WHERE articleId = :id";
+        $st = $conn->prepare($sql);
+        $st->bindValue(":id", $this->id, PDO::PARAM_INT);
+        $st->execute();
+
+        // затем сразу вставляем новые строки в таблицу связей (если выбран хотя бы один автор)
+        foreach ($this->authors as $user) {
+            $sql = "INSERT INTO user_articles (userLogin, articleId)
+                VALUES (:userLogin, :articleId)";
+            $st = $conn->prepare($sql);
+            $st->bindValue(":userLogin", $user, PDO::PARAM_STR);
+            $st->bindValue(":articleId", $this->id, PDO::PARAM_INT); 
+            $st->execute();
+        }
+
+        // закрываем транзкцию
+        $conn->commit();
         $conn = null;
     }
 

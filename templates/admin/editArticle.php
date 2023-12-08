@@ -37,7 +37,7 @@
                       <option value="0"<?php echo ($results['article']->categoryId == 0 && !$results['article']->subcategoryId) ? " selected" : "" ?>>(none)</option>
                     <?php foreach ($results['categories'] as $category) { ?>
                       <optgroup label="<?php echo $category->name ?>">
-                          <option value="<?php echo $category->id?>"<?php echo ($category->id == $results['article']->categoryId) ? " selected" : "" ?>>
+                          <option value="<?php echo $category->id ?>"<?php echo ($category->id == $results['article']->categoryId) ? " selected" : "" ?>>
                             без подкатегории
                           </option>
                         <?php foreach ($results['subcategories'] as $subcategory) { 
@@ -61,6 +61,15 @@
                     <input type="hidden" name="active" value="0">
                     <input id="checkActivity" type="checkbox" name="active" value="1"
                       <?php echo !isset($results['article']->active) || $results['article']->active ? "checked" : "" ?> />
+                  </li>
+
+                  <li>  
+                    <label for="authors[]">Autors</label>
+                    <select name="authors[]" multiple>
+                    <?php foreach ($results['users'] as $author) { ?>
+                        <option value="<?php echo $author->login ?>"<?php echo in_array($author->login, $results['article']->authors) ? " selected" : "" ?>><?php echo $author->login ?></option>
+                    <?php } ?>
+                    </select>
                   </li>
 
                 </ul>

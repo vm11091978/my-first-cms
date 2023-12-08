@@ -18,6 +18,13 @@
         </a>
     <?php } ?>
 
+    <?php if ($results['article']->authors) { ?>
+    <span style="font-size: 80%;" class="category">
+        author<?php echo isset($results['article']->authors[1]) ? 's' : '' ?>: 
+        <?php echo implode(", ", $results['article']->authors); ?>
+    </span>
+    <?php } ?>
+
     </p>
 
     <p><a href="./">Вернуться на главную страницу</a></p>

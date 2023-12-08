@@ -14,37 +14,44 @@
                 <?php if (isset($results['categories'][$article->categoryId]->name)) { ?>
                     <span class="category">
                         in 
-                        <a href=".?action=archive&amp;categoryId=<?php echo $article->categoryId?>">
-                            <?php echo htmlspecialchars($results['categories'][$article->categoryId]->name)?>
+                        <a href=".?action=archive&amp;categoryId=<?php echo $article->categoryId ?>">
+                            <?php echo htmlspecialchars($results['categories'][$article->categoryId]->name) ?>
                         </a>
                     </span>
                 <?php } 
                 elseif (isset($article->subcategoryId)) { ?>
                     <span class="category">
                         in 
-                        <a href=".?action=archive&amp;categoryId=<?php echo $results['subcategories'][$article->subcategoryId]->categoryId?>">
-                            <?php echo htmlspecialchars($results['subcategories'][$article->subcategoryId]->name)?>
+                        <a href=".?action=archive&amp;categoryId=<?php echo $results['subcategories'][$article->subcategoryId]->categoryId ?>">
+                            <?php echo htmlspecialchars($results['subcategories'][$article->subcategoryId]->name) ?>
                         </a>
                     </span>
                 <?php } 
                 else { ?>
                     <span class="category">
-                        <?php echo "Без категории"?>
+                        <?php echo "Без категории" ?>
                     </span>
                 <?php } ?>
 
                 <?php if (isset($article->subcategoryId)) { ?>
                     <span class="category">
                         in 
-                        <a href=".?action=archive&amp;subcategoryId=<?php echo $article->subcategoryId?>">
-                            <?php echo htmlspecialchars($results['subcategories'][$article->subcategoryId]->subname)?>
+                        <a href=".?action=archive&amp;subcategoryId=<?php echo $article->subcategoryId ?>">
+                            <?php echo htmlspecialchars($results['subcategories'][$article->subcategoryId]->subname) ?>
                         </a>
                     </span>
                 <?php } 
                 else { ?>
                     <span class="category">
-                        <?php echo "Без подкатегории"?>
+                        <?php echo "Без подкатегории" ?>
                     </span>
+                <?php } ?>
+
+                <?php if ($article->authors) { ?>
+                <span class="category">
+                    author<?php echo isset($article->authors[1]) ? 's' : '' ?>:
+                    <?php echo implode(", ", $article->authors); ?>
+                </span>
                 <?php } ?>
             </h2>
 <!--        <p class="summary"><?php echo htmlspecialchars($article->summary) ?></p> -->

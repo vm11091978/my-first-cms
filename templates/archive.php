@@ -41,6 +41,13 @@
                             </a>
                         </span>
                     <?php } ?>
+
+                    <?php if ($article->authors) { ?>
+                    <span class="category">
+                        author<?php echo isset($article->authors[1]) ? 's' : '' ?>:
+                        <?php echo implode(", ", $article->authors); ?>
+                    </span>
+                    <?php } ?>
                 </h2>
                 <p class="summary"><?php echo htmlspecialchars($article->summary) ?></p>
             </li>

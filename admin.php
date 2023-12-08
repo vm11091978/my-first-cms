@@ -240,9 +240,10 @@ function newArticle()
         $results['article'] = new Article;
         $data = Category::getList();
         $results['categories'] = $data['results'];
-        $data = Category::getList();
         $data = Subcategory::getList();
         $results['subcategories'] = $data['results'];
+        $data = User::getList();
+        $results['users'] = $data['results'];
 
         require(TEMPLATE_PATH . "/admin/editArticle.php");
     }
@@ -287,12 +288,14 @@ function editArticle()
         header("Location: admin.php");
     } else {
 
-        // Пользвоатель еще не получил форму редактирования: выводим форму
+        // Пользователь еще не получил форму редактирования: выводим форму
         $results['article'] = Article::getById((int)$_GET['articleId']);
         $data = Category::getList();
         $results['categories'] = $data['results'];
         $data = Subcategory::getList();
         $results['subcategories'] = $data['results'];
+        $data = User::getList();
+        $results['users'] = $data['results'];
 
         require(TEMPLATE_PATH . "/admin/editArticle.php");
     }

@@ -90,7 +90,13 @@ class User
     { 
         $conn = new PDO(DB_DSN, DB_USERNAME, DB_PASSWORD);
         $fromPart = "FROM " . self::NAMETABLE;
-        $sql = "SELECT * $fromPart ORDER BY $order LIMIT :numRows";
+
+        // Никому, кроме админа, не будем передавать в представление пароли и активности пользователей
+        if ($_SESSION['username'] == ADMIN_USERNAME) {
+            $sql = "SELECT * $fromPart ORDER BY $order LIMIT :numRows";
+        } else {
+            $sql = "SELECT login $fromPart ORDER BY $order LIMIT :numRows";
+        }
 
         $st = $conn->prepare($sql);
         $st->bindValue(":numRows", $numRows, PDO::PARAM_INT);
