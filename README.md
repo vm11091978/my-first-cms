@@ -96,3 +96,27 @@ CREATE TABLE `user_articles` (
     REFERENCES `Articles` (`id`) ON DELETE CASCADE
 ) ENGINE = INNODB;
 ```
+
+Для пятого задания не обязательно, но хорошо ещё добавить в таблицу 'users' поле 'id'
+(если таблица "user_articles" уже существует, сначала удалим её):
+```php
+DROP TABLE IF EXISTS `user_articles`;
+
+ALTER TABLE `users` DROP PRIMARY KEY;
+ALTER TABLE `users` ADD `id` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT FIRST, ADD PRIMARY KEY (`id`), ADD UNIQUE KEY `id` (`id`);
+
+CREATE TABLE `user_articles` (
+  `id` SMALLINT(5) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `loginId` SMALLINT(5) UNSIGNED NOT NULL,
+  `articleId` SMALLINT(5) UNSIGNED NOT NULL, 
+  PRIMARY KEY (`id`),
+    UNIQUE KEY `relation_row_unique` (`loginId`, `articleId`),
+  INDEX `loginId` (`loginId`),
+  INDEX `articleId` (`articleId`),
+  CONSTRAINT `user_articles_ibfk_1` FOREIGN KEY (`loginId`) 
+    REFERENCES `Users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `user_articles_ibfk_2` FOREIGN KEY (`articleId`) 
+    REFERENCES `Articles` (`id`) ON DELETE CASCADE
+) ENGINE = INNODB;
+```
+

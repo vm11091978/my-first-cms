@@ -167,14 +167,19 @@ class Article
 
         if ($row) {
             // Делаем запрос к БД для отображения авторов статьи
-            $sql = "SELECT * FROM user_articles WHERE articleId = :articleId";
+            $sql = "SELECT user_articles.*, users.login
+                FROM user_articles
+                LEFT JOIN users
+                    ON user_articles.loginId = users.id
+                WHERE articleId = :articleId";
+
             $st = $conn->prepare($sql);
             $st->bindValue(":articleId", $id, PDO::PARAM_INT);
             $st->execute();
 
             $authors = array();
             while ($row2 = $st->fetch()) {
-                $authors[] = $row2['userLogin'];
+                $authors[] = $row2['login'];
             }
 
             $article = new Article($row);
@@ -200,19 +205,22 @@ class Article
         $conn = new PDO(DB_DSN, DB_USERNAME, DB_PASSWORD);
 
         // Делаем запрос к БД для отображения авторов статьи
-        $sql = "SELECT * FROM user_articles";
+        $sql = "SELECT user_articles.*, users.login, users.id AS userId
+            FROM user_articles
+            LEFT JOIN users
+                ON user_articles.loginId = users.id";
         $st = $conn->prepare($sql);
         $st->execute();
 
-        // Сформируем массив вида ( [5]=>Array([0]=>Masha [1]=>Vova) [10]=>Array([0]=>Masha) )
+        // Сформируем массив вида ( [5]=>Array( [1]=>Masha [3]=>Vova ) [10]=>Array( [1]=>Masha ) )
         // каждым ключём которого будет ID статьи, а значением - массив авторов этой статьи
         $authors = array();
         while ($row = $st->fetch()) {
             // если такой ID статьи уже существует в массиве, просто добавим к статье ещё одного автора
             if (array_key_exists($row['articleId'], $authors)) {
-                $authors[$row['articleId']][] = $row['userLogin'];
+                $authors[$row['articleId']][$row['userId']] = $row['login'];
             } else {
-                $authors[$row['articleId']] = array($row['userLogin']);
+                $authors[$row['articleId']] = array($row['userId'] => $row['login']);
             }
         }
         // return (array("results" => $authors, "totalRows" => 1));
@@ -242,11 +250,11 @@ class Article
         }
 
         $sql = "SELECT $tableName.*,
-            UNIX_TIMESTAMP(publicationDate) AS publicationDate,
-            subcategories.categoryId AS categoryId2
+                UNIX_TIMESTAMP(publicationDate) AS publicationDate,
+                subcategories.categoryId AS categoryId2
             $fromPart
             LEFT JOIN subcategories
-            ON $tableName.subcategoryId = subcategories.id
+                ON $tableName.subcategoryId = subcategories.id
             $categoryClause $activeClause
             ORDER BY $orderClause LIMIT :numRows";
 /*
@@ -348,10 +356,10 @@ class Article
 
         // Если выбран(ы) автор(ы), вставляем данные в таблицу связей
         foreach ($this->authors as $user){
-            $sql = "INSERT INTO user_articles (userLogin, articleId)
-                VALUES (:userLogin, :articleId)";
+            $sql = "INSERT INTO user_articles (loginId, articleId)
+                VALUES (:loginId, :articleId)";
             $st = $conn->prepare($sql);
-            $st->bindValue(":userLogin", $user, PDO::PARAM_STR);
+            $st->bindValue(":loginId", $user, PDO::PARAM_INT);
             $st->bindValue(":articleId", $lastInsertId, PDO::PARAM_INT); 
             $st->execute();
         }
@@ -383,7 +391,7 @@ class Article
         $st = $conn->prepare($sql);
         $st->bindValue(":publicationDate", $this->publicationDate, PDO::PARAM_INT);
         /**
-         * Если переденное из представления значение categoryId является числом,
+         * Если переданное из представления значение categoryId является числом,
          * значит статья принадлежит непосредственно какой-то категории минуя подкатегорию,
          * запишем это значение в БД в столбец "categoryId",
          * а значение subcategoryId для этой статьи будет отутствовать.
@@ -414,10 +422,10 @@ class Article
 
         // затем сразу вставляем новые строки в таблицу связей (если выбран хотя бы один автор)
         foreach ($this->authors as $user) {
-            $sql = "INSERT INTO user_articles (userLogin, articleId)
-                VALUES (:userLogin, :articleId)";
+            $sql = "INSERT INTO user_articles (loginId, articleId)
+                VALUES (:loginId, :articleId)";
             $st = $conn->prepare($sql);
-            $st->bindValue(":userLogin", $user, PDO::PARAM_STR);
+            $st->bindValue(":loginId", $user, PDO::PARAM_INT);
             $st->bindValue(":articleId", $this->id, PDO::PARAM_INT); 
             $st->execute();
         }

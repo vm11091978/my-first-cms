@@ -9,6 +9,11 @@ class User
     const NAMETABLE = "users";
 
     /**
+     * @var int ID пользователя
+     */
+    public $id = null;
+
+    /**
      * @var string Логин пользователя
      */
     public $login  = null;
@@ -31,6 +36,10 @@ class User
      */
     public function __construct($data = array())
     {
+        if (isset($data['id'])) {
+            $this->id = (int) $data['id'];
+        }
+
         if (isset($data['login'])) {
             $this->login = $data['login'];
         }
@@ -95,7 +104,7 @@ class User
         if ($_SESSION['username'] == ADMIN_USERNAME) {
             $sql = "SELECT * $fromPart ORDER BY $order LIMIT :numRows";
         } else {
-            $sql = "SELECT login $fromPart ORDER BY $order LIMIT :numRows";
+            $sql = "SELECT id, login $fromPart ORDER BY $order LIMIT :numRows";
         }
 
         $st = $conn->prepare($sql);

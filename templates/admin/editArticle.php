@@ -67,7 +67,7 @@
                     <label for="authors[]">Autors</label>
                     <select name="authors[]" multiple>
                     <?php foreach ($results['users'] as $author) { ?>
-                        <option value="<?php echo $author->login ?>"<?php echo in_array($author->login, $results['article']->authors) ? " selected" : "" ?>><?php echo $author->login ?></option>
+                        <option value="<?php echo $author->id ?>"<?php echo in_array($author->login, $results['article']->authors) ? " selected" : "" ?>><?php echo $author->login ?></option>
                     <?php } ?>
                     </select>
                   </li>
