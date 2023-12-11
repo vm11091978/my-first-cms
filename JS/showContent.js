@@ -1,8 +1,10 @@
-$(function(){
-    
-    console.log('Привет, это страый js ))');
+$(function() {
+    console.log('Привет, это старый js ))');
+
     init_get();
     init_post();
+    init_get_new();
+    init_post_new();
 });
 
 function init_get() 
@@ -64,4 +66,97 @@ function init_post()
         return false;
         
     });  
+}
+
+function init_get_new()
+{
+    $('a.ajaxByGet').one('click', function() {
+        var articleId = $(this).attr('data-articleId');
+        showLoaderIdentity(articleId);
+
+        $.ajax({
+            type: "GET",  // метод
+            url:'/ajax/showContentsHandler.php',  // адрес отправки (url)
+            dataType: 'text',  // тип возвращаемого значения
+            data: { articleId: articleId },  // отравляемые данные (обычно js-объект)
+            // обработчик успешного ответа
+            success: function(response, textStatus, jqXHR) {
+                console.log('Получили ответ:', response);
+
+                // Сделаем небольшую задержку скрипта, чтобы увидеть работу лоадера
+                setTimeout(() => {
+                    hideLoaderIdentity();
+                    $('li.' + articleId + ' .ajax-load').hide();
+                    $('li.' + articleId).append(response);
+                }, 1000 );
+            },
+            // обработчик ошибки
+            error: function(xhr, status, error) {
+                hideLoaderIdentity();
+
+                console.log('ajaxError xhr:', xhr); // выводим значения переменных
+                console.log('ajaxError status:', status);
+                console.log('ajaxError error:', error);
+                // соберем самое интересное в переменную
+                var errorInfo = 'Ошибка выполнения запроса: '
+                        + '\n[' + xhr.status + ' ' + status   + ']'
+                        +  ' ' + error + ' \n '
+                        + xhr.responseText
+                        + '<br>'
+                        + xhr.responseJSON;
+
+                console.log('ajaxError:', errorInfo); // в консоль
+                // alert(errorInfo); // если требуется и то на экран
+            }
+        });
+
+        return false;
+    });
+}
+
+function init_post_new()
+{
+    $('a.ajaxByPost').one('click', function() {
+        var articleId = $(this).attr('data-articleId');
+        showLoaderIdentity(articleId);
+
+        $.ajax({
+            type: "POST",  // метод
+            url: '/ajax/showContentsHandler.php',  // адрес отправки (url)
+            dataType: 'json',  // тип возвращаемого значения
+            data: { articleId: articleId },  // отравляемые данные (обычно js-объект)
+            // обработчик успешного ответа
+            success: function(response, textStatus, jqXHR) {
+                console.log('Получили ответ:', response);
+
+                // Сделаем небольшую задержку скрипта, чтобы увидеть работу лоадера
+                setTimeout(() => {
+                    hideLoaderIdentity();
+                    $('li.' + articleId + ' .ajax-load').hide();
+                    // var content = JSON.stringify(response['content']);
+                    $('li.' + articleId).append(response);
+                }, 1000 );
+            },
+            // обработчик ошибки
+            error: function(xhr, status, error) {
+                hideLoaderIdentity();
+
+                console.log('ajaxError xhr:', xhr); // выводим значения переменных
+                console.log('ajaxError status:', status);
+                console.log('ajaxError error:', error);
+                // соберем самое интересное в переменную
+                var errorInfo = 'Ошибка выполнения запроса: '
+                        + '\n[' + xhr.status + ' ' + status   + ']'
+                        +  ' ' + error + ' \n '
+                        + xhr.responseText
+                        + '<br>'
+                        + xhr.responseJSON;
+
+                console.log('ajaxError:', errorInfo); // в консоль
+                // alert(errorInfo); // если требуется и то на экран
+            }
+        });
+
+        return false;
+    });
 }

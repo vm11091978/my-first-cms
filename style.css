@@ -1,5 +1,5 @@
 /* Стили для body and внешнего контейнера */
-	 
+
 body {
   margin: 0;
   color: #333;
@@ -37,7 +37,7 @@ body {
   font-size: .8em;
 }
 
-#loader-identity {
+.loader-identity {
     display : none;
     float : right;
 }
