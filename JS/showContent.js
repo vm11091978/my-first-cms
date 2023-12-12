@@ -7,15 +7,15 @@ $(function() {
     init_post_new();
 });
 
-function init_get() 
+function init_get()
 {
     $('a.ajaxArticleBodyByGet').one('click', function(){
         var contentId = $(this).attr('data-contentId');
-        console.log('ID статьи = ', contentId); 
+        console.log('ID статьи = ', contentId);
         showLoaderIdentity();
         $.ajax({
-            url:'/ajax/showContentsHandler.php?articleId=' + contentId, 
-            dataType: 'json'
+            url:'/ajax/showContentsHandler.php?articleId=' + contentId,
+            dataType: 'text'
         })
         .done (function(obj){
             hideLoaderIdentity();
@@ -24,28 +24,28 @@ function init_get()
         })
         .fail(function(xhr, status, error){
             hideLoaderIdentity();
-    
+
             console.log('ajaxError xhr:', xhr); // выводим значения переменных
             console.log('ajaxError status:', status);
             console.log('ajaxError error:', error);
-    
+
             console.log('Ошибка соединения при получении данных (GET)');
         });
-        
+
         return false;
-        
+
     });  
 }
 
-function init_post() 
+function init_post()
 {
     $('a.ajaxArticleBodyByPost').one('click', function(){
         var content = $(this).attr('data-contentId');
         showLoaderIdentity();
         $.ajax({
-            url:'/ajax/showContentsHandler.php', 
-            dataType: 'text',
-//            converters: 'json text',
+            url:'/ajax/showContentsHandler.php',
+            dataType: 'json',
+            data: { articleId: content },
             method: 'POST'
         })
         .done (function(obj){
@@ -55,16 +55,15 @@ function init_post()
         })
         .fail(function(xhr, status, error){
             hideLoaderIdentity();
-    
-    
+
             console.log('Ошибка соединения с сервером (POST)');
             console.log('ajaxError xhr:', xhr); // выводим значения переменных
             console.log('ajaxError status:', status);
             console.log('ajaxError error:', error);
         });
-        
+
         return false;
-        
+
     });  
 }
 
